@@ -1,0 +1,9 @@
+[package]
+name = "clit"
+version = "0.1.0"
+edition = "2021"
+description = "交互式命令行"
+
+[dependencies]
+clap = { version = "4.1.9", features = ["derive"] }
+shlex = "1.1.0"
