@@ -1,8 +1,10 @@
 use std::io::{stdout, Write};
 
+mod by_builder;
 mod by_derive;
 
 fn main() {
+    by_builder::start();
 }
 
 #[macro_export]
