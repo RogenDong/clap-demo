@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use clap::{command, Command, FromArgMatches, Parser, Subcommand};
 
 use crate::{elo, read_line};
@@ -58,7 +60,7 @@ impl TsCommand {
     /// 处理命令B
     fn proc_cmd_b(name: &String) -> Result<bool, String> {
         println!("name: [{name}]");
-        return Ok(false);
+        Ok(false)
     }
 
     /// # 匹配，调用命令处理
@@ -78,7 +80,7 @@ fn respond(line: &str) -> Result<bool, String> {
     // println!("args: {args:?}");
 
     let mut patter = TsCommand::augment_subcommands(command!().no_binary_name(true));
-    let mat = match patter.clone().try_get_matches_from(&args) {
+    let mat = match patter.clone().try_get_matches_from(args) {
         Err(e) => {
             use clap::error::ErrorKind::{DisplayHelp, DisplayVersion};
             match e.kind() {

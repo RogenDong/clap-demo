@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use clap::{command, Arg, ArgAction, Command};
 
 use crate::{elo, elr, read_line};
@@ -32,7 +34,7 @@ fn get_cmd() -> Command {
 fn respond(line: &str) -> Result<bool, String> {
     let args = shlex::split(line).ok_or("error: Invalid quoting")?;
     let cmd = get_cmd();
-    let mat = elr!(cmd.try_get_matches_from(&args) ;; e -> {
+    let mat = elr!(cmd.try_get_matches_from(args) ;; e -> {
         println!("{e:#?}");
         return Ok(false);
     });
