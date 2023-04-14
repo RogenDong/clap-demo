@@ -1,14 +1,16 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::collections::HashMap;
 
 use clap::ArgMatches;
 
-use super::{CmdBase, Values};
+use crate::{elo, elr};
 
-pub fn parse<'i>(mat: &'i ArgMatches, cmd: &CmdBase) -> Result<Values<'i>, ()> {
-    let get_val = |name| -> Option<Cow<str>> {
+use super::{Cmd, CmdEngine, Val, Values};
+
+fn parse(mat: &ArgMatches, cmd: &Cmd) -> Result<Values, ()> {
+    let get_val = |name| -> Val {
         if let Some(mut v) = mat.get_raw(name) {
             if let Some(v) = v.next() {
-                return Some(v.to_string_lossy());
+                return Some(v.to_str()?.to_string());
             }
         }
         None
@@ -21,17 +23,36 @@ pub fn parse<'i>(mat: &'i ArgMatches, cmd: &CmdBase) -> Result<Values<'i>, ()> {
 
     let mut opts = HashMap::with_capacity(cmd.opts.len());
     for opt in &cmd.opts {
-        // no flag ->  Some(Some(val)  Some(None)
-        // is flag -> true=Some(None)  false=None
         let val = if !opt.is_flag {
-            Some(get_val(opt.name()))
-        } else if mat.get_flag(opt.name()) {
-            Some(None)
+            let v = get_val(opt.name());
+            (v.is_some(), v)
         } else {
-            None
+            (mat.get_flag(opt.name()), None)
         };
         opts.insert(opt.name(), val);
     }
 
     Ok(Values { args, opts })
+}
+
+impl CmdEngine {
+    pub fn try_matches(&mut self, itr: &[String]) -> Result<bool, ()> {
+        let mat = elr!(self.inner.try_get_matches_from_mut(itr) ;; e -> {
+            println!("get matches error: {e:#?}");
+            return Err(());
+        });
+
+        let (name, mat) = elo!(mat.subcommand() ;; Err(())?);
+        for (cn, wrap) in &self.cmds {
+            if name != *cn {
+                continue;
+            }
+
+            let values = parse(mat, &wrap.base)?;
+            return wrap.act.start(values);
+        }
+
+        println!("cmd未定义: {name}");
+        Err(())
+    }
 }

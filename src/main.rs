@@ -1,10 +1,62 @@
 use std::io::{stdout, Write};
 
+use wrap::{builder::CmdBuilder, Arg, Cmd, CmdAct, Opt};
+
 mod by_builder;
 mod by_derive;
+mod wrap;
+
+struct ShowInput;
+// static act_show_input: ShowInput = ShowInput;
+impl CmdAct for ShowInput {}
+
+struct HelloWorld;
+// static act_hello_world: HelloWorld = HelloWorld;
+
+impl CmdAct for HelloWorld {
+    fn start(&self, val: wrap::Values) -> Result<bool, ()> {
+        let who = val.get_arg("who").unwrap();
+        println!("hi, {who}");
+        if val.get_flag("quit") {
+            println!("bye ~");
+            // stop
+            return Ok(false);
+        }
+        if let Some(tmp) = val.get_opt("abcd") {
+            println!("abcd: {tmp}");
+        }
+        Ok(true)
+    }
+}
 
 fn main() {
-    by_builder::start();
+    let mut engine = CmdBuilder::new()
+        .cmd(
+            Cmd::new("echo", "print input")
+                .opt(Opt::new("opt1", true, "abcd"))
+                .opt(Opt::new("opt2", false, "xyz"))
+                .arg(Arg::new("arg1", true, "argument 1 (reuired)"))
+                .arg(Arg::new("arg2", false, "argument 2 (optional)"))
+                .act(&ShowInput),
+        )
+        .cmd(
+            Cmd::new("hello", "asdjflksjdflk")
+                .opt(Opt::new("abcd", false, "efg"))
+                .opt(Opt::new("quit", true, "exit app"))
+                .arg(Arg::new("who", true, "greet whom?"))
+                .act(&HelloWorld),
+        )
+        .build();
+    loop {
+        let line = elo!(read_line() ;; continue);
+        let Some(inp) = shlex::split(&line) else {
+            println!("Invalid input");
+            continue;
+        };
+        if let Ok(false) = engine.try_matches(&inp) {
+            break;
+        }
+    } // loop
 }
 
 #[macro_export]
