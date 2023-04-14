@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use clap::ArgMatches;
+use clap::{error::ErrorKind, ArgMatches};
 
-use crate::{elo, elr};
+use crate::elo;
 
 use super::{Cmd, CmdEngine, Val, Values};
+
 
 fn parse(mat: &ArgMatches, cmd: &Cmd) -> Result<Values, ()> {
     let get_val = |name| -> Val {
@@ -36,11 +37,26 @@ fn parse(mat: &ArgMatches, cmd: &Cmd) -> Result<Values, ()> {
 }
 
 impl CmdEngine {
+    fn help(&mut self, name: &str) {
+        for (item, wrap) in &mut self.cmds {
+            if name == *item {
+                println!("{}", wrap.inner.render_help());
+                return;
+            }
+        }
+        println!("{}", self.inner.render_help());
+    }
     pub fn try_matches(&mut self, itr: &[String]) -> Result<bool, ()> {
-        let mat = elr!(self.inner.try_get_matches_from_mut(itr) ;; e -> {
-            println!("get matches error: {e:#?}");
-            return Err(());
-        });
+        let mat = match self.inner.try_get_matches_from_mut(itr) {
+            Err(e) => return if let ErrorKind::DisplayHelp = e.kind() {
+                self.help(itr.first().unwrap());
+                Ok(true)
+            } else {
+                println!("get matches error: {e:#?}");
+                Err(())
+            },
+            Ok(m) => m,
+        };
 
         let (name, mat) = elo!(mat.subcommand() ;; Err(())?);
         for (cn, wrap) in &self.cmds {
